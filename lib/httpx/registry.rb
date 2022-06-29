@@ -48,7 +48,7 @@ module HTTPX
     module ClassMethods
       def inherited(klass)
         super
-        klass.instance_variable_set(:@registry, @registry.dup)
+        klass.instance_variable_set(:@registry, @registry)
       end
 
       # @param [Object] tag the handler identifier in the registry
@@ -70,7 +70,9 @@ module HTTPX
       #   assumed to be an autoloaded module, to be loaded later)
       #
       def register(tag, handler)
-        registry[tag] = handler
+        @registry = registry.merge(tag => handler)
+        @registry.freeze
+        handler
       end
     end
 
