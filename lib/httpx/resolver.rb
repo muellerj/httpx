@@ -38,7 +38,12 @@ module HTTPX
     end
 
     def system_resolve(hostname)
-      ips = @system_resolver.getaddresses(hostname)
+      ips = if in_ractor?
+        Ractor.current[:httpx_system_resolver] ||= Resolv::Hosts.new
+      else
+        @system_resolver
+      end.getaddresses(hostname)
+
       return if ips.empty?
 
       ips.map { |ip| IPAddr.new(ip) }
@@ -46,9 +51,23 @@ module HTTPX
     end
 
     def cached_lookup(hostname)
-      now = Utils.now
-      @lookup_mutex.synchronize do
-        lookup(hostname, now)
+      ttl = Utils.now
+      lookup_synchronize do |lookups|
+        if lookups.key?(hostname)
+
+          lookups[hostname] = lookups[hostname].select do |address|
+            address["TTL"] > ttl
+          end
+
+          ips = lookups[hostname].flat_map do |address|
+            if address.key?("alias")
+              lookup(address["alias"], ttl)
+            else
+              IPAddr.new(address["data"])
+            end
+          end
+          ips unless ips.empty?
+        end
       end
     end
 
@@ -57,50 +76,39 @@ module HTTPX
       entries.each do |entry|
         entry["TTL"] += now
       end
-      @lookup_mutex.synchronize do
+      lookup_synchronize do |lookups|
         case family
         when Socket::AF_INET6
-          @lookups[hostname].concat(entries)
+          lookups[hostname].concat(entries)
         when Socket::AF_INET
-          @lookups[hostname].unshift(*entries)
+          lookups[hostname].unshift(*entries)
         end
         entries.each do |entry|
           next unless entry["name"] != hostname
 
           case family
           when Socket::AF_INET6
-            @lookups[entry["name"]] << entry
+            lookups[entry["name"]] << entry
           when Socket::AF_INET
-            @lookups[entry["name"]].unshift(entry)
+            lookups[entry["name"]].unshift(entry)
           end
         end
       end
     end
 
-    # do not use directly!
-    def lookup(hostname, ttl)
-      return unless @lookups.key?(hostname)
-
-      @lookups[hostname] = @lookups[hostname].select do |address|
-        address["TTL"] > ttl
-      end
-      ips = @lookups[hostname].flat_map do |address|
-        if address.key?("alias")
-          lookup(address["alias"], ttl)
-        else
-          IPAddr.new(address["data"])
-        end
-      end
-      ips unless ips.empty?
-    end
-
     def generate_id
-      @identifier_mutex.synchronize { @identifier = (@identifier + 1) & 0xFFFF }
+      if in_ractor?
+        identifier = Ractor.current[:httpx_resolver_identifier] ||= -1
+        return (Ractor.current[:httpx_resolver_identifier] = (identifier + 1) & 0xFFFF)
+      end
+
+      @identifier_mutex.synchronize do
+        @identifier = (@identifier + 1) & 0xFFFF
+      end
     end
 
     def encode_dns_query(hostname, type: Resolv::DNS::Resource::IN::A)
-      Resolv::DNS::Message.new.tap do |query|
-        query.id = generate_id
+      Resolv::DNS::Message.new(generate_id).tap do |query|
         query.rd = 1
         query.add_question(hostname, type)
       end.encode
@@ -127,6 +135,31 @@ module HTTPX
         end
       end
       addresses
+    end
+
+    def lookup_synchronize
+      if in_ractor?
+        lookups = Ractor.current[:httpx_resolver_lookups] ||= Hash.new { |h, k| h[k] = [] }
+        return yield(lookups)
+      end
+
+      @lookup_mutex.synchronize { yield(@lookups) }
+    end
+
+    def id_synchronize
+      @identifier_mutex.synchronize { yield(@identifier) }
+    end
+
+    if defined?(Ractor) &&
+       # no ractor support for 3.0
+       RUBY_VERSION >= "3.1.0"
+      def in_ractor?
+        Ractor.main != Ractor.current
+      end
+    else
+      def in_ractor?
+        false
+      end
     end
   end
 end
