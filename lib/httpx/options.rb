@@ -137,9 +137,13 @@ module HTTPX
       super
       @origin.freeze
       @base_path.freeze
+      @ssl.freeze
+      @http2_settings.freeze
       @timeout.freeze
       @headers.freeze
       @addresses.freeze
+      @resolver_options.freeze
+      @ip_families.freeze
     end
 
     def option_origin(value)
