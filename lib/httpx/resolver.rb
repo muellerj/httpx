@@ -23,7 +23,7 @@ module HTTPX
     @lookups = Hash.new { |h, k| h[k] = [] }
 
     @identifier_mutex = Mutex.new
-    @identifier = 1
+    @identifier = -1
     @system_resolver = Resolv::Hosts.new
 
     module_function
