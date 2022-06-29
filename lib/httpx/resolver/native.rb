@@ -34,6 +34,7 @@ module HTTPX
         false
       end
     end if DEFAULTS[:nameserver]
+    DEFAULTS[:nameserver].each(&:freeze).freeze
 
     DNS_PORT = 53
 

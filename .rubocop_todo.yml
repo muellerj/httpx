@@ -31,6 +31,9 @@ Style/NumericPredicate:
   Exclude:
     - lib/palanca/extensions/*.rb
 
+Style/RedundantFreeze:
+  Enabled: false
+
 Style/Documentation:
   Enabled: false
 

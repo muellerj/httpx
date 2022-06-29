@@ -9,7 +9,7 @@ module HTTPX
     include Callbacks
     using URIExtensions
 
-    USER_AGENT = "httpx.rb/#{VERSION}"
+    USER_AGENT = "httpx.rb/#{VERSION}".freeze
 
     attr_reader :verb, :uri, :headers, :body, :state, :options, :response
 
