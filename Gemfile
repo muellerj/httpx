@@ -86,7 +86,7 @@ group :test do
   gem "oga"
 
   if RUBY_VERSION >= "3.0.0"
-    gem "rbs"
+    gem "rbs", platforms: :mri
     gem "rubocop"
     gem "rubocop-performance"
     gem "webrick"
