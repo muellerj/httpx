@@ -44,6 +44,20 @@ module Requests
         end
       end
 
+      %w[MD5 SHA1].each do |alg|
+        define_method "test_plugin_digest_authentication_#{alg}_sess" do
+          start_test_servlet(DigestServer, algorithm: "#{alg}-sess") do |server|
+            uri = "#{server.origin}/"
+            session = HTTPX.plugin(:digest_authentication).with_headers("cookie" => "fake=fake_value")
+            response = session.digest_auth(user, server.get_passwd(user)).get(uri)
+            verify_status(response, 200)
+            body = json_body(response)
+            verify_header(body, "authenticated", true)
+            verify_header(body, "user", user)
+          end
+        end
+      end
+
       def test_plugin_digest_authentication_bypass
         session = HTTPX.plugin(:digest_authentication).with_headers("cookie" => "fake=fake_value")
         response = session.get(digest_auth_uri)
