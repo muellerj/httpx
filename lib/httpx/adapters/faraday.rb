@@ -8,6 +8,7 @@ module Faraday
   class Adapter
     class HTTPX < Faraday::Adapter
       module RequestMixin
+<<<<<<< HEAD
         def build_connection(env)
           return @connection if defined?(@connection)
 
@@ -31,6 +32,8 @@ module Faraday
           @session.close
         end
 
+=======
+>>>>>>> a4738f8 (drop faraday adapter support for faraday lower than v1)
         private
 
         def connect(env, &blk)
