@@ -7,34 +7,7 @@ require "faraday"
 module Faraday
   class Adapter
     class HTTPX < Faraday::Adapter
-      # :nocov:
-      SSL_ERROR = if defined?(Faraday::SSLError)
-        Faraday::SSLError
-      else
-        Faraday::Error::SSLError
-      end
-
-      CONNECTION_FAILED_ERROR = if defined?(Faraday::ConnectionFailed)
-        Faraday::ConnectionFailed
-      else
-        Faraday::Error::ConnectionFailed
-      end
-      # :nocov:
-
-      unless Faraday::RequestOptions.method_defined?(:stream_response?)
-        module RequestOptionsExtensions
-          refine Faraday::RequestOptions do
-            def stream_response?
-              false
-            end
-          end
-        end
-        using RequestOptionsExtensions
-      end
-
       module RequestMixin
-        using ::HTTPX::HashExtensions
-
         def build_connection(env)
           return @connection if defined?(@connection)
 
@@ -63,7 +36,7 @@ module Faraday
         def connect(env, &blk)
           connection(env, &blk)
         rescue ::HTTPX::TLSError => e
-          raise SSL_ERROR, e
+          raise Faraday::SSLError, e
         rescue Errno::ECONNABORTED,
                Errno::ECONNREFUSED,
                Errno::ECONNRESET,
@@ -72,7 +45,7 @@ module Faraday
                Errno::ENETUNREACH,
                Errno::EPIPE,
                ::HTTPX::ConnectionError => e
-          raise CONNECTION_FAILED_ERROR, e
+          raise Faraday::ConnectionFailed, e
         end
 
         def build_request(env)
