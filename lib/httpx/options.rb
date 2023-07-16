@@ -30,6 +30,7 @@ module HTTPX
       :ssl => {},
       :http2_settings => { settings_enable_push: 0 },
       :fallback_protocol => "http/1.1",
+      :supported_content_encodings => %w[gzip deflate],
       :timeout => {
         connect_timeout: CONNECT_TIMEOUT,
         settings_timeout: SETTINGS_TIMEOUT,
@@ -43,6 +44,7 @@ module HTTPX
       :window_size => WINDOW_SIZE,
       :buffer_size => BUFFER_SIZE,
       :body_threshold_size => MAX_BODY_THRESHOLD_SIZE,
+      :compression_threshold_size => nil,
       :request_class => Class.new(Request),
       :response_class => Class.new(Response),
       :headers_class => Class.new(Headers),
@@ -90,6 +92,7 @@ module HTTPX
       @timeout.freeze
       @headers.freeze
       @addresses.freeze
+      @supported_content_encodings.freeze
     end
 
     def option_origin(value)
@@ -106,6 +109,10 @@ module HTTPX
 
     def option_timeout(value)
       Hash[value]
+    end
+
+    def option_supported_content_encodings(value)
+      Array(value).map(&:to_s)
     end
 
     def option_max_concurrent_requests(value)
@@ -137,7 +144,17 @@ module HTTPX
     end
 
     def option_body_threshold_size(value)
-      Integer(value)
+      bytes = Integer(value)
+      raise TypeError, ":body_threshold_size must be positive" unless bytes.positive?
+
+      bytes
+    end
+
+    def option_compression_threshold_size(value)
+      bytes = Integer(value)
+      raise TypeError, ":compression_threshold_size must be positive" unless bytes.positive?
+
+      bytes
     end
 
     def option_transport(value)

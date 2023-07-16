@@ -40,6 +40,9 @@ module HTTPX
     # buffer_size
     attr_reader buffer_size: Integer
 
+    # compression_threshold_size
+    attr_reader compression_threshold_size: Integer?
+
     # body_threshold_size
     attr_reader body_threshold_size: Integer
 
@@ -48,6 +51,9 @@ module HTTPX
 
     # addresses
     attr_reader addresses: Array[ipaddr]?
+
+    # supported_content_encodings
+    attr_reader supported_content_encodings: Array[String]
 
     # params
     attr_reader params: Transcoder::urlencoded_input?

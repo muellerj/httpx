@@ -8,11 +8,10 @@ module Faraday
   class Adapter
     class HTTPX < Faraday::Adapter
       module RequestMixin
-<<<<<<< HEAD
         def build_connection(env)
           return @connection if defined?(@connection)
 
-          @connection = ::HTTPX.plugin(:compression).plugin(:persistent).plugin(ReasonPlugin)
+          @connection = ::HTTPX.plugin(:persistent).plugin(ReasonPlugin)
           @connection = @connection.with(@connection_options) unless @connection_options.empty?
           @connection = @connection.with(options_from_env(env))
 
@@ -32,8 +31,6 @@ module Faraday
           @session.close
         end
 
-=======
->>>>>>> a4738f8 (drop faraday adapter support for faraday lower than v1)
         private
 
         def connect(env, &blk)
